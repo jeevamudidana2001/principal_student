@@ -2,6 +2,7 @@ from fastapi import FastAPI, Form
 from fastapi.middleware.cors import CORSMiddleware
 import json
 import os
+from datetime import datetime  # ✅ Import for timestamp
 
 app = FastAPI()
 
@@ -33,7 +34,11 @@ def register(name: str = Form(...), roll: str = Form(...)):
         if student["roll"] == roll:
             return {"error": f"Student with roll number {roll} already exists."}
 
-    student = {"name": name, "roll": roll}
+    student = {
+        "name": name,
+        "roll": roll,
+        "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S")  # ✅ Add timestamp
+    }
     students.append(student)
 
     with open(FILE_NAME, "w") as f:
@@ -78,3 +83,4 @@ def update_student(
         return {"message": f"Student with roll {old_roll} updated successfully."}
     else:
         return {"error": f"No student found with roll number {old_roll}."}
+
