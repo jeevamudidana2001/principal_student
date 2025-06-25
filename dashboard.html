@@ -9,7 +9,7 @@
     table { width: 100%; border-collapse: collapse; margin-top: 20px; }
     th, td { padding: 10px; border: 1px solid #ccc; text-align: left; }
     th { background-color: #f0f0f0; }
-    #registerStatus { margin-top: 10px; font-weight: bold; }
+    #registerStatus, #updateStatus { margin-top: 10px; font-weight: bold; }
   </style>
 </head>
 <body>
@@ -29,6 +29,13 @@
     </tr>
   </table>
 
+  <h2>✏️ Edit Student</h2>
+  <input type="text" id="editOldRoll" placeholder="Current Roll Number (readonly)" readonly>
+  <input type="text" id="editName" placeholder="New Name">
+  <input type="text" id="editRoll" placeholder="New Roll Number">
+  <button onclick="updateStudent()">Update</button>
+  <p id="updateStatus"></p>
+
   <script>
     const apiBase = "https://principal-student-2.onrender.com";
 
@@ -43,7 +50,10 @@
             row.innerHTML = `
               <td>${student.name}</td>
               <td>${student.roll}</td>
-              <td><button onclick="deleteStudent('${student.roll}')">Delete</button></td>
+              <td>
+                <button onclick="editStudent('${student.name}', '${student.roll}')">Edit</button>
+                <button onclick="deleteStudent('${student.roll}')">Delete</button>
+              </td>
             `;
           });
         })
@@ -72,7 +82,7 @@
       .then(res => res.json())
       .then(data => {
         document.getElementById("registerStatus").innerText = data.message || data.error;
-        fetchStudents(); // Refresh list
+        fetchStudents();
         document.getElementById("name").value = "";
         document.getElementById("roll").value = "";
       })
@@ -90,17 +100,55 @@
       .then(res => res.json())
       .then(data => {
         alert(data.message || data.error);
-        fetchStudents(); // Refresh list
+        fetchStudents();
       })
       .catch(() => {
         alert("❌ Failed to delete student.");
       });
     }
 
-    // Load students on page load
+    function editStudent(name, roll) {
+      document.getElementById("editOldRoll").value = roll;
+      document.getElementById("editName").value = name;
+      document.getElementById("editRoll").value = roll;
+    }
+
+    function updateStudent() {
+      const oldRoll = document.getElementById("editOldRoll").value;
+      const newName = document.getElementById("editName").value;
+      const newRoll = document.getElementById("editRoll").value;
+
+      if (!newName || !newRoll) {
+        document.getElementById("updateStatus").innerText = "⚠️ Please enter name and roll number.";
+        return;
+      }
+
+      const formData = new FormData();
+      formData.append("old_roll", oldRoll);
+      formData.append("new_name", newName);
+      formData.append("new_roll", newRoll);
+
+      fetch(`${apiBase}/update`, {
+        method: "PUT",
+        body: formData
+      })
+      .then(res => res.json())
+      .then(data => {
+        document.getElementById("updateStatus").innerText = data.message || data.error;
+        fetchStudents();
+        document.getElementById("editOldRoll").value = "";
+        document.getElementById("editName").value = "";
+        document.getElementById("editRoll").value = "";
+      })
+      .catch(() => {
+        document.getElementById("updateStatus").innerText = "❌ Failed to update student.";
+      });
+    }
+
     window.onload = fetchStudents;
   </script>
 
 </body>
 </html>
+
 
