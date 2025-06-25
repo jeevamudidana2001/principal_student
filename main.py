@@ -60,7 +60,7 @@ def delete_student(roll: str):
         return {"error": f"No student found with roll number {roll}."}
 
 
-from fastapi import FastAPI, Form
+
 
 @app.put("/update")
 def update_student(
