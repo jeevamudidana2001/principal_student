@@ -5,7 +5,7 @@ import os
 
 app = FastAPI()
 
-# Enable frontend access
+# Enable frontend access (CORS)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -13,19 +13,22 @@ app.add_middleware(
     allow_headers=["*"]
 )
 
-# File to store data
+# File to store student data
 FILE_NAME = "students.json"
 
-# Load existing data or create empty list
+# Load existing data or start fresh
 if os.path.exists(FILE_NAME):
     with open(FILE_NAME, "r") as f:
         students = json.load(f)
 else:
     students = []
 
+@app.get("/")
+def home():
+    return {"message": "Welcome to the Principal-Student App 🚀"}
+
 @app.post("/register")
 def register(name: str = Form(...), roll: str = Form(...)):
-    # Check for duplicate roll numbers
     for student in students:
         if student["roll"] == roll:
             return {"error": f"Student with roll number {roll} already exists."}
@@ -33,34 +36,27 @@ def register(name: str = Form(...), roll: str = Form(...)):
     student = {"name": name, "roll": roll}
     students.append(student)
 
-    # Save to file
     with open(FILE_NAME, "w") as f:
         json.dump(students, f, indent=4)
 
     return {"message": f"{name} registered successfully!", "total": len(students)}
 
-
 @app.get("/students")
 def get_students():
     return students
+
 @app.delete("/delete/{roll}")
 def delete_student(roll: str):
     global students
     original_count = len(students)
-
-    # Filter out student with matching roll number
     students = [s for s in students if s["roll"] != roll]
 
     if len(students) < original_count:
-        # Save updated list to JSON
         with open(FILE_NAME, "w") as f:
             json.dump(students, f, indent=4)
         return {"message": f"Student with roll number {roll} deleted successfully."}
     else:
         return {"error": f"No student found with roll number {roll}."}
-
-
-
 
 @app.put("/update")
 def update_student(
@@ -69,7 +65,6 @@ def update_student(
     new_roll: str = Form(...)
 ):
     found = False
-
     for student in students:
         if student["roll"] == old_roll:
             student["name"] = new_name
