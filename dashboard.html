@@ -9,15 +9,16 @@
     table { width: 100%; border-collapse: collapse; margin-top: 20px; }
     th, td { padding: 10px; border: 1px solid #ccc; text-align: left; }
     th { background-color: #f0f0f0; }
-    #registerStatus { margin-top: 10px; font-weight: bold; color: green; }
+    #registerStatus { margin-top: 10px; font-weight: bold; }
   </style>
 </head>
 <body>
 
-  <h2>📥 Register Student</h2>
+  <h2 id="formTitle">📥 Register Student</h2>
   <input type="text" id="name" placeholder="Enter Name">
   <input type="text" id="roll" placeholder="Enter Roll Number">
-  <button onclick="registerStudent()">Register</button>
+  <button onclick="submitForm()">Register</button>
+  <button onclick="cancelEdit()" id="cancelBtn" style="display: none;">Cancel Edit</button>
   <p id="registerStatus"></p>
 
   <h2>📋 Registered Students</h2>
@@ -25,13 +26,16 @@
     <tr>
       <th>Name</th>
       <th>Roll Number</th>
-      <th>Registered At</th> <!-- ✅ New column -->
+      <th>Registered At</th>
       <th>Action</th>
     </tr>
   </table>
 
   <script>
     const apiBase = "https://principal-student-2.onrender.com";
+
+    let isEditMode = false;
+    let oldRollValue = "";
 
     function fetchStudents() {
       fetch(`${apiBase}/students`)
@@ -44,17 +48,17 @@
             row.innerHTML = `
               <td>${student.name}</td>
               <td>${student.roll}</td>
-              <td>${student.timestamp || "Not Available"}</td>
-              <td><button onclick="deleteStudent('${student.roll}')">Delete</button></td>
+              <td>${student.timestamp || "-"}</td>
+              <td>
+                <button onclick="editStudent('${student.name}', '${student.roll}')">✏️ Edit</button>
+                <button onclick="deleteStudent('${student.roll}')">🗑️ Delete</button>
+              </td>
             `;
           });
-        })
-        .catch(() => {
-          document.getElementById("registerStatus").innerText = "❌ Failed to load students!";
         });
     }
 
-    function registerStudent() {
+    function submitForm() {
       const name = document.getElementById("name").value.trim();
       const roll = document.getElementById("roll").value.trim();
 
@@ -67,20 +71,60 @@
       formData.append("name", name);
       formData.append("roll", roll);
 
-      fetch(`${apiBase}/register`, {
-        method: "POST",
-        body: formData
-      })
-      .then(res => res.json())
-      .then(data => {
-        document.getElementById("registerStatus").innerText = data.message || data.error;
-        fetchStudents(); // Refresh list
-        document.getElementById("name").value = "";
-        document.getElementById("roll").value = "";
-      })
-      .catch(() => {
-        document.getElementById("registerStatus").innerText = "❌ Failed to register student.";
-      });
+      if (isEditMode) {
+        // Update mode
+        formData.append("old_roll", oldRollValue);
+        formData.append("new_name", name);
+        formData.append("new_roll", roll);
+
+        fetch(`${apiBase}/update`, {
+          method: "PUT",
+          body: formData
+        })
+        .then(res => res.json())
+        .then(data => {
+          document.getElementById("registerStatus").innerText = data.message || data.error;
+          resetForm();
+          fetchStudents();
+        });
+      } else {
+        // Register mode
+        fetch(`${apiBase}/register`, {
+          method: "POST",
+          body: formData
+        })
+        .then(res => res.json())
+        .then(data => {
+          document.getElementById("registerStatus").innerText = data.message || data.error;
+          fetchStudents();
+          resetForm();
+        });
+      }
+    }
+
+    function editStudent(name, roll) {
+      isEditMode = true;
+      oldRollValue = roll;
+
+      document.getElementById("name").value = name;
+      document.getElementById("roll").value = roll;
+      document.querySelector("button[onclick='submitForm()']").innerText = "Update";
+      document.getElementById("formTitle").innerText = "✏️ Edit Student";
+      document.getElementById("cancelBtn").style.display = "inline-block";
+    }
+
+    function cancelEdit() {
+      resetForm();
+    }
+
+    function resetForm() {
+      isEditMode = false;
+      oldRollValue = "";
+      document.getElementById("name").value = "";
+      document.getElementById("roll").value = "";
+      document.querySelector("button[onclick='submitForm()']").innerText = "Register";
+      document.getElementById("formTitle").innerText = "📥 Register Student";
+      document.getElementById("cancelBtn").style.display = "none";
     }
 
     function deleteStudent(roll) {
@@ -92,19 +136,16 @@
       .then(res => res.json())
       .then(data => {
         alert(data.message || data.error);
-        fetchStudents(); // Refresh list
-      })
-      .catch(() => {
-        alert("❌ Failed to delete student.");
+        fetchStudents();
       });
     }
 
-    // Load students on page load
     window.onload = fetchStudents;
   </script>
 
 </body>
 </html>
+
 
 
 
