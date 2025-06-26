@@ -1,13 +1,13 @@
 from fastapi import FastAPI, Form
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel
 import json
 import os
 from datetime import datetime
+import requests  # ✅ Required for Google Sheets integration
 
 app = FastAPI()
 
-# Enable frontend access (CORS)
+# CORS
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -15,10 +15,9 @@ app.add_middleware(
     allow_headers=["*"]
 )
 
-# File to store student data
 FILE_NAME = "students.json"
 
-# Load existing data or start fresh
+# Load or create
 if os.path.exists(FILE_NAME):
     with open(FILE_NAME, "r") as f:
         students = json.load(f)
@@ -35,15 +34,21 @@ def register(name: str = Form(...), roll: str = Form(...)):
         if student["roll"] == roll:
             return {"error": f"Student with roll number {roll} already exists."}
 
-    student = {
-        "name": name,
-        "roll": roll,
-        "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    }
+    timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    student = {"name": name, "roll": roll, "timestamp": timestamp}
     students.append(student)
 
     with open(FILE_NAME, "w") as f:
         json.dump(students, f, indent=4)
+
+    # ✅ Send data to Google Sheets
+    try:
+        requests.post(
+            "https://script.google.com/macros/s/AKfycbxevMkfR04q_6UWqcV5-7RkVEDF433ruvO_VZTFJky1Xyxuqk1a7WDJ_kNLwKT0n734/exec",
+            json=student
+        )
+    except Exception as e:
+        print("⚠️ Google Sheets update failed:", e)
 
     return {"message": f"{name} registered successfully!", "total": len(students)}
 
@@ -84,20 +89,3 @@ def update_student(
         return {"message": f"Student with roll {old_roll} updated successfully."}
     else:
         return {"error": f"No student found with roll number {old_roll}."}
-
-# Admin login section
-class LoginData(BaseModel):
-    username: str
-    password: str
-
-ADMIN_USERNAME = "admin"
-ADMIN_PASSWORD = "admin123"
-
-@app.post("/login")
-def login(data: LoginData):
-    if data.username == ADMIN_USERNAME and data.password == ADMIN_PASSWORD:
-        return {"success": True, "message": "Login successful"}
-    else:
-        return {"success": False, "error": "Invalid username or password"}
-
-
