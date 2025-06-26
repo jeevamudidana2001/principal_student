@@ -1,8 +1,9 @@
 from fastapi import FastAPI, Form
 from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel
 import json
 import os
-from datetime import datetime  # ✅ Import for timestamp
+from datetime import datetime
 
 app = FastAPI()
 
@@ -37,7 +38,7 @@ def register(name: str = Form(...), roll: str = Form(...)):
     student = {
         "name": name,
         "roll": roll,
-        "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S")  # ✅ Add timestamp
+        "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     }
     students.append(student)
 
@@ -83,4 +84,20 @@ def update_student(
         return {"message": f"Student with roll {old_roll} updated successfully."}
     else:
         return {"error": f"No student found with roll number {old_roll}."}
+
+# Admin login section
+class LoginData(BaseModel):
+    username: str
+    password: str
+
+ADMIN_USERNAME = "admin"
+ADMIN_PASSWORD = "admin123"
+
+@app.post("/login")
+def login(data: LoginData):
+    if data.username == ADMIN_USERNAME and data.password == ADMIN_PASSWORD:
+        return {"success": True, "message": "Login successful"}
+    else:
+        return {"success": False, "error": "Invalid username or password"}
+
 
