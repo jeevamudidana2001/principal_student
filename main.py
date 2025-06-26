@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Form
+from fastapi import FastAPI, Form, Request
 from fastapi.middleware.cors import CORSMiddleware
 import json
 import os
@@ -89,3 +89,15 @@ def update_student(
         return {"message": f"Student with roll {old_roll} updated successfully."}
     else:
         return {"error": f"No student found with roll number {old_roll}."}
+
+# ✅ Admin login route
+@app.post("/login")
+async def login(request: Request):
+    data = await request.json()
+    username = data.get("username")
+    password = data.get("password")
+
+    if username == "admin" and password == "admin123":
+        return {"success": True}
+    else:
+        return {"success": False, "error": "Invalid credentials"}
