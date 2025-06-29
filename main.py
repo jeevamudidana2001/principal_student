@@ -1,3 +1,4 @@
+from datetime import datetime
 from fastapi import FastAPI, Form, Request
 from fastapi.middleware.cors import CORSMiddleware
 import json
@@ -29,14 +30,30 @@ def home():
     return {"message": "Welcome to the Principal-Student App 🚀"}
 
 @app.post("/register")
-def register(name: str = Form(...), roll: str = Form(...)):
+async def register_student(name: str = Form(...), roll: str = Form(...)):
+    with open("students.json", "r") as file:
+        students = json.load(file)
+
+    # Check for duplicate roll numbers
     for student in students:
         if student["roll"] == roll:
-            return {"error": f"Student with roll number {roll} already exists."}
+            return {"error": "Student with this roll number already exists."}
 
+    # Get current timestamp
     timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    student = {"name": name, "roll": roll, "timestamp": timestamp}
-    students.append(student)
+
+    # Append new student with timestamp
+    students.append({
+        "name": name,
+        "roll": roll,
+        "timestamp": timestamp
+    })
+
+    with open("students.json", "w") as file:
+        json.dump(students, file, indent=2)
+
+    return {"message": "Student registered successfully."}
+
 
     with open(FILE_NAME, "w") as f:
         json.dump(students, f, indent=4)
